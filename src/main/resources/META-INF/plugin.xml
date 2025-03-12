@@ -1,0 +1,37 @@
+<idea-plugin>
+    <!--  插件的独立id-->
+    <id>com.ideaPlugindemo.rcc.id</id>
+    <!--  你的插件名称，也是对应市场的那个-->
+    <name>idea学习演示插件</name>
+    <version>1.0</version>
+    <!--  你的邮箱、网址和昵称-->
+    <vendor email="861157525@qq.com" url="http://rccblogs.com">花神</vendor>
+
+    <description>处理if循环问题的插件,更直观地输出if循环到底是如何进行的.</description>
+
+    <change-notes><![CDATA[
+      这是插件的更新记录，支持富文本。
+    ]]>
+    </change-notes>
+
+    <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <!-- 最低可安装的idea版本-->
+    <idea-version since-build="173.0"/>
+
+    <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <!--插件所需的依赖信息-->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="site.hnfy258.plugindemo.IfStatementLineMarkerProvider"/>
+    </extensions>
+    <!--方法和行为都在这里-->
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
+</idea-plugin>
