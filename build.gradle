@@ -17,6 +17,9 @@ intellij {
     type = 'IC' // Target IDE Platform
     plugins = ['com.intellij.java']
 }
+dependencies {
+    implementation 'net.sourceforge.plantuml:plantuml:1.2023.10'
+}
 
 // The correct way to configure tasks in Groovy DSL
 compileJava {
