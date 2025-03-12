@@ -5,6 +5,7 @@ import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo;
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider;
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.editor.colors.EditorFontType;
@@ -14,6 +15,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.*;
 import com.intellij.ui.awt.RelativePoint;
+import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.util.ui.JBUI;
@@ -24,8 +26,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.Collection;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider {
+
+    private final Map<PsiMethod, IFTreeNode> ifTreeCache = new WeakHashMap<>();
     @Override
     protected void collectNavigationMarkers(@NotNull PsiElement element,
                                             @NotNull Collection<? super RelatedItemLineMarkerInfo<?>> result) {
@@ -40,15 +46,15 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
         }
 
         // Check if the method has if statements
-        boolean hasIfStatements = false;
+        boolean hasControlFlowStructures = false;
         for (PsiStatement statement : body.getStatements()) {
-            if (containsIfStatement(statement)) {
-                hasIfStatements = true;
+            if (containsControlFlowStructure(statement)) {
+                hasControlFlowStructures = true;
                 break;
             }
         }
 
-        if (!hasIfStatements) {
+        if (!hasControlFlowStructures) {
             return;
         }
 
@@ -62,28 +68,37 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
             showIfTreePopup(e, method);
         };
 
-        // Create icon marker
+        // 创建图标标记
         RelatedItemLineMarkerInfo<PsiElement> info = NavigationGutterIconBuilder
                 .create(AllIcons.General.InspectionsEye)
                 .setTargets(method)
-                .setTooltipText("View IF Logic Structure")
-                .setPopupTitle("IF Logic Structure")
+                .setTooltipText("查看控制流结构")
+                .setPopupTitle("控制流结构")
                 .setAlignment(GutterIconRenderer.Alignment.LEFT)
-                .setNamer(methodElement -> "IF Logic Structure")
+                .setNamer(methodElement -> "控制流结构")
                 .createLineMarkerInfo(nameIdentifier, handler);
 
         result.add(info);
     }
 
-    private boolean containsIfStatement(PsiStatement statement) {
-        if (statement instanceof PsiIfStatement) {
+    /**
+     * 检查语句中是否包含任何控制流结构
+     */
+    private boolean containsControlFlowStructure(PsiStatement statement) {
+        if (statement instanceof PsiIfStatement ||
+                statement instanceof PsiWhileStatement ||
+                statement instanceof PsiDoWhileStatement ||
+                statement instanceof PsiForStatement ||
+                statement instanceof PsiForeachStatement ||
+                statement instanceof PsiSwitchStatement ||
+                statement instanceof PsiTryStatement) {
             return true;
         }
 
         if (statement instanceof PsiBlockStatement) {
             PsiCodeBlock block = ((PsiBlockStatement) statement).getCodeBlock();
             for (PsiStatement childStatement : block.getStatements()) {
-                if (containsIfStatement(childStatement)) {
+                if (containsControlFlowStructure(childStatement)) {
                     return true;
                 }
             }
@@ -92,22 +107,47 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
         return false;
     }
 
-    private void showIfTreePopup(MouseEvent e, PsiMethod method) {
-        Project project = method.getProject();
-        AnalyzeIf analyzer = new AnalyzeIf();
-        IFTreeNode ifTree = analyzer.analyze(method);
+    private IFTreeNode getIfTree(PsiMethod method) {
+        return ifTreeCache.computeIfAbsent(method, m -> {
+            AnalyzeIf analyzer = new AnalyzeIf();
+            return analyzer.analyze(m);
+        });
+    }
 
-        // Get IDE's editor font
+
+
+    private void showIfTreePopup(MouseEvent e, PsiMethod method) {
+        // 创建加载提示
+        JBLabel loadingLabel = new JBLabel("正在分析IF结构...");
+        JBPopup loadingPopup = JBPopupFactory.getInstance()
+                .createComponentPopupBuilder(loadingLabel, loadingLabel)
+                .setTitle("分析中")
+                .createPopup();
+        loadingPopup.show(new RelativePoint(e));
+
+        // 后台线程执行分析
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            IFTreeNode ifTree = getIfTree(method);
+
+            // 切回UI线程显示结果
+            ApplicationManager.getApplication().invokeLater(() -> {
+                loadingPopup.cancel();
+                showResultPopup(e, method, ifTree);
+            });
+        });
+    }
+
+
+    private void showResultPopup(MouseEvent e, PsiMethod method, IFTreeNode ifTree) {
+        // 获取IDE编辑器字体
         Font editorFont = EditorColorsManager.getInstance().getGlobalScheme().getFont(EditorFontType.PLAIN);
 
-        // Create text area to display the IF tree
-        JBTextArea textArea = new JBTextArea(ifTree.toString());
+        // 创建文本区域显示IF树
+        JBTextArea textArea = new JBTextArea(ifTree.toStringCached()); // 使用缓存的toString结果
         textArea.setEditable(false);
-
-        // Use the IDE's editor font
         textArea.setFont(editorFont);
 
-        // Get IDE color scheme
+        // 获取IDE配色方案
         EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
         Color backgroundColor = scheme.getDefaultBackground();
         Color foregroundColor = scheme.getDefaultForeground();
@@ -120,7 +160,7 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
         scrollPane.setPreferredSize(new Dimension(800, 600));
         scrollPane.setBorder(JBUI.Borders.empty());
 
-        // Create popup window
+        // 创建弹出窗口
         JBPopup popup = JBPopupFactory.getInstance()
                 .createComponentPopupBuilder(scrollPane, textArea)
                 .setTitle("IF Logic Structure - " + method.getName())
@@ -129,7 +169,7 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
                 .setRequestFocus(true)
                 .createPopup();
 
-        // Show popup window
+        // 显示弹出窗口
         popup.show(new RelativePoint(e));
     }
 }
