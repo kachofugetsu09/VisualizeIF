@@ -3,37 +3,66 @@ package site.hnfy258.plugindemo;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 表示条件逻辑树中的节点
- * 用于IDE插件中可视化展示if语句的逻辑结构
- */
 public class IFTreeNode {
-    // 节点类型枚举
     public enum NodeType {
-        IF,             // if节点
-        ELSE_IF,        // else if节点
-        ELSE,           // else节点
-        CONDITION,      // 条件表达式
-        STATEMENT_BLOCK // 语句块
+        IF, ELSE_IF, ELSE, THEN_BRANCH, STATEMENT, METHOD
     }
 
-    private String val;              // 条件表达式内容
-    private List<IFTreeNode> children; // 子节点列表
-    private IFTreeNode parent;       // 父节点
-    private NodeType nodeType;       // 节点类型
-    private int startLine;           // 在源代码中的起始行
-    private int endLine;             // 在源代码中的结束行
-    private String sourceCode;       // 源代码片段
+    private NodeType type;
+    private String text;
+    private List<IFTreeNode> children;
 
-    /**
-     * 构造函数
-     * @param nodeType 节点类型
-     * @param val 条件表达式
-     */
-    public IFTreeNode(NodeType nodeType, String val) {
-        this.nodeType = nodeType;
-        this.val = val;
+    public IFTreeNode(NodeType type, String text) {
+        this.type = type;
+        this.text = text;
         this.children = new ArrayList<>();
     }
 
+    public void addChild(IFTreeNode child) {
+        children.add(child);
+    }
+
+    public NodeType getType() {
+        return type;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public List<IFTreeNode> getChildren() {
+        return children;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        buildString(builder, "", "");
+        return builder.toString();
+    }
+
+    private void buildString(StringBuilder builder, String prefix, String childrenPrefix) {
+        builder.append(prefix);
+        builder.append(text);
+        builder.append("\n");
+
+        for (int i = 0; i < children.size(); i++) {
+            IFTreeNode child = children.get(i);
+            String newPrefix;
+            String newChildrenPrefix;
+
+            if (i < children.size() - 1) {
+                // 非最后一个子节点
+                newPrefix = childrenPrefix + "├── ";
+                newChildrenPrefix = childrenPrefix + "│   ";
+            } else {
+                // 最后一个子节点
+                newPrefix = childrenPrefix + "└── ";
+                newChildrenPrefix = childrenPrefix + "    ";
+            }
+
+            child.buildString(builder, newPrefix, newChildrenPrefix);
+        }
+    }
 }
+
