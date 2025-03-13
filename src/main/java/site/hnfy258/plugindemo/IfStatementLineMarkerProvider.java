@@ -157,7 +157,6 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
         // 获取IDE编辑器字体
         Font editorFont = EditorColorsManager.getInstance().getGlobalScheme().getFont(EditorFontType.PLAIN);
 
-        // 创建面板
         JPanel panel = new JPanel(new BorderLayout());
 
         // 使用JEditorPane显示HTML内容
@@ -175,7 +174,6 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
         editorPane.setForeground(foregroundColor);
         editorPane.setBorder(JBUI.Borders.empty(10));
 
-        // 设置HTML内容，包装为pre标签保持格式
         String htmlContent = "<html><body style='font-family: monospace;'><pre>" +
                 ifTree.toStringCached() +
                 "</pre></body></html>";
@@ -187,12 +185,11 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
 
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        // 创建对话框窗口而不是弹出窗口
         JDialog dialog = new JDialog();
         dialog.setTitle("IF Logic Structure - " + method.getName());
         dialog.setContentPane(panel);
         dialog.setSize(800, 600);
-        dialog.setLocationRelativeTo(null); // 居中显示
+        dialog.setLocationRelativeTo(null);
 
 
         // 显示对话框

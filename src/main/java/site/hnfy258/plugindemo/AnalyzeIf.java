@@ -228,10 +228,8 @@ public class AnalyzeIf {
             analyzeBranch(ifStatement.getThenBranch(), ifNode);
         }
 
-        // Process else branch
         if (ifStatement.getElseBranch() != null) {
             if (ifStatement.getElseBranch() instanceof PsiIfStatement) {
-                // This is an else-if
                 PsiIfStatement elseIfStatement = (PsiIfStatement) ifStatement.getElseBranch();
                 String elseIfCondition = elseIfStatement.getCondition() != null ?
                         elseIfStatement.getCondition().getText() : "no condition";
@@ -379,7 +377,6 @@ public class AnalyzeIf {
 
         parentNode.addChild(switchNode);
 
-        // Process the switch body which contains cases
         PsiCodeBlock body = switchStatement.getBody();
         if (body != null) {
             PsiStatement[] statements = body.getStatements();
@@ -390,7 +387,6 @@ public class AnalyzeIf {
                 if (statement instanceof PsiSwitchLabelStatement) {
                     PsiSwitchLabelStatement labelStatement = (PsiSwitchLabelStatement) statement;
 
-                    // Create a new case node
                     String caseText;
                     if (labelStatement.isDefaultCase()) {
                         caseText = "default:";
@@ -401,7 +397,6 @@ public class AnalyzeIf {
                     currentCaseNode = new IFTreeNode(IFTreeNode.NodeType.CASE, caseText);
                     switchNode.addChild(currentCaseNode);
                 } else if (currentCaseNode != null) {
-                    // Add statements under the current case
                     analyzeStatement(statement, currentCaseNode);
                 }
             }
@@ -420,7 +415,6 @@ public class AnalyzeIf {
      * 分析try-catch-finally语句
      */
     private void analyzeTryStatement(PsiTryStatement tryStatement, IFTreeNode parentNode) {
-        // Create try node as a sibling to catch and finally
         String tryText = "try";
         if(tryStatement.getResourceList() != null){
             tryText += tryStatement.getResourceList().getText();
@@ -436,16 +430,14 @@ public class AnalyzeIf {
             }
         }
 
-        // Analyze catch sections - add as siblings to try
         PsiCatchSection[] catchSections = tryStatement.getCatchSections();
         for (PsiCatchSection catchSection : catchSections) {
             PsiParameter parameter = catchSection.getParameter();
             if (parameter != null) {
                 String catchText = "catch (" + parameter.getType().getPresentableText() + " " + parameter.getName() + ")";
                 IFTreeNode catchNode = new IFTreeNode(IFTreeNode.NodeType.CATCH, catchText);
-                parentNode.addChild(catchNode);  // Add to parent, not tryNode
+                parentNode.addChild(catchNode);
 
-                // Analyze statements in catch block
                 PsiCodeBlock catchBlock = catchSection.getCatchBlock();
                 if (catchBlock != null) {
                     for (PsiStatement statement : catchBlock.getStatements()) {
@@ -456,13 +448,11 @@ public class AnalyzeIf {
         }
 
 
-        // Analyze finally block if present - add as sibling to try
         PsiCodeBlock finallyBlock = tryStatement.getFinallyBlock();
         if (finallyBlock != null) {
             IFTreeNode finallyNode = new IFTreeNode(IFTreeNode.NodeType.FINALLY, "finally");
             parentNode.addChild(finallyNode);  // Add to parent, not tryNode
 
-            // Analyze statements in finally block
             for (PsiStatement statement : finallyBlock.getStatements()) {
                 analyzeStatement(statement, finallyNode);
             }

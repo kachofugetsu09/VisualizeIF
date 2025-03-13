@@ -7,7 +7,17 @@
     <!--  你的邮箱、网址和昵称-->
     <vendor email="861157525@qq.com" url="http://rccblogs.com">花神</vendor>
 
-    <description>处理if循环问题的插件,更直观地输出if循环到底是如何进行的.</description>
+    <description>
+        A powerful visualization tool for control flow structures in Java code. This plugin enhances code readability by providing an intuitive, color-coded tree view of if-statements, loops, and other control flow constructs.
+
+        Key features:
+        • Visual representation of nested if-else statements, loops, and switch blocks
+        • Color-coded hierarchy for easy navigation through complex control flow
+        • Accessible via gutter icons next to methods with control flow structures
+        • Optimized performance with intelligent caching
+
+        Perfect for understanding complex logic flows, code reviews, and teaching programming concepts.
+    </description>
 
     <change-notes><![CDATA[
       这是插件的更新记录，支持富文本。
