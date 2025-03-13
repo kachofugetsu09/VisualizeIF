@@ -5,7 +5,9 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -223,7 +225,6 @@ public class AnalyzeIf {
      * 分析while循环语句
      */
     private void analyzeWhileStatement(PsiWhileStatement whileStatement, IFTreeNode parentNode) {
-        // TODO:
         // 1. 提取循环条件
         String condition = whileStatement.getCondition() != null ?
                 whileStatement.getCondition().getText() : "no condition";
@@ -333,8 +334,41 @@ public class AnalyzeIf {
      * 分析switch语句
      */
     private void analyzeSwitchStatement(PsiSwitchStatement switchStatement, IFTreeNode parentNode) {
-        //TODO
+        String switchText = "switch (" + switchStatement.getExpression().getText() + ")";
+
+        IFTreeNode switchNode = new IFTreeNode(IFTreeNode.NodeType.SWITCH, switchText);
+
+        parentNode.addChild(switchNode);
+
+        // Process the switch body which contains cases
+        PsiCodeBlock body = switchStatement.getBody();
+        if (body != null) {
+            PsiStatement[] statements = body.getStatements();
+
+            IFTreeNode currentCaseNode = null;
+
+            for (PsiStatement statement : statements) {
+                if (statement instanceof PsiSwitchLabelStatement) {
+                    PsiSwitchLabelStatement labelStatement = (PsiSwitchLabelStatement) statement;
+
+                    // Create a new case node
+                    String caseText;
+                    if (labelStatement.isDefaultCase()) {
+                        caseText = "default:";
+                    } else {
+                        caseText = labelStatement.getText();
+                    }
+
+                    currentCaseNode = new IFTreeNode(IFTreeNode.NodeType.CASE, caseText);
+                    switchNode.addChild(currentCaseNode);
+                } else if (currentCaseNode != null) {
+                    // Add statements under the current case
+                    analyzeStatement(statement, currentCaseNode);
+                }
+            }
+        }
     }
+
 
     /**
      * 分析switch表达式（Java 12+）
@@ -347,8 +381,54 @@ public class AnalyzeIf {
      * 分析try-catch-finally语句
      */
     private void analyzeTryStatement(PsiTryStatement tryStatement, IFTreeNode parentNode) {
-        //TODO
+        // Create try node as a sibling to catch and finally
+        String tryText = "try";
+        if(tryStatement.getResourceList() != null){
+            tryText += tryStatement.getResourceList().getText();
+        }
+        IFTreeNode tryNode = new IFTreeNode(IFTreeNode.NodeType.TRY, tryText);
+        parentNode.addChild(tryNode);
+
+        // Analyze try block
+        PsiCodeBlock tryBlock = tryStatement.getTryBlock();
+        if (tryBlock != null) {
+            for (PsiStatement statement : tryBlock.getStatements()) {
+                analyzeStatement(statement, tryNode);
+            }
+        }
+
+        // Analyze catch sections - add as siblings to try
+        PsiCatchSection[] catchSections = tryStatement.getCatchSections();
+        for (PsiCatchSection catchSection : catchSections) {
+            PsiParameter parameter = catchSection.getParameter();
+            if (parameter != null) {
+                String catchText = "catch (" + parameter.getType().getPresentableText() + " " + parameter.getName() + ")";
+                IFTreeNode catchNode = new IFTreeNode(IFTreeNode.NodeType.CATCH, catchText);
+                parentNode.addChild(catchNode);  // Add to parent, not tryNode
+
+                // Analyze statements in catch block
+                PsiCodeBlock catchBlock = catchSection.getCatchBlock();
+                if (catchBlock != null) {
+                    for (PsiStatement statement : catchBlock.getStatements()) {
+                        analyzeStatement(statement, catchNode);
+                    }
+                }
+            }
+        }
+
+        // Analyze finally block if present - add as sibling to try
+        PsiCodeBlock finallyBlock = tryStatement.getFinallyBlock();
+        if (finallyBlock != null) {
+            IFTreeNode finallyNode = new IFTreeNode(IFTreeNode.NodeType.FINALLY, "finally");
+            parentNode.addChild(finallyNode);  // Add to parent, not tryNode
+
+            // Analyze statements in finally block
+            for (PsiStatement statement : finallyBlock.getStatements()) {
+                analyzeStatement(statement, finallyNode);
+            }
+        }
     }
+
 
     private void analyzeBranch(PsiStatement branch, IFTreeNode parentNode) {
         if (branch instanceof PsiBlockStatement) {
@@ -365,6 +445,11 @@ public class AnalyzeIf {
             analyzeForeachStatement((PsiForeachStatement) branch, parentNode);
         } else if (branch instanceof PsiDoWhileStatement) {
             analyzeDoWhileStatement((PsiDoWhileStatement) branch, parentNode);
+        } else if (branch instanceof PsiSwitchStatement) {
+            analyzeSwitchStatement((PsiSwitchStatement) branch, parentNode);
+        } else if (branch instanceof  PsiTryStatement) {
+            analyzeTryStatement((PsiTryStatement) branch, parentNode);
+
         } else {
             analyzeStatement(branch, parentNode);
         }

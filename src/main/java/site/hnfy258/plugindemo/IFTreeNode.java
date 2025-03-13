@@ -7,7 +7,7 @@ import java.util.List;
 public class IFTreeNode {
     public enum NodeType {
         IF, ELSE_IF, ELSE, THEN_BRANCH, STATEMENT, METHOD,
-        WHILE, DO_WHILE, FOR, SWITCH, CASE, DEFAULT, TRY, CATCH, FINALLY
+        WHILE, DO_WHILE, FOR, SWITCH, CASE, DEFAULT, TRY, CATCH, FINALLY,SWITCH_EXPR,EXPRESSION, RESOURCE
     }
 
     private NodeType type;
@@ -72,5 +72,15 @@ public class IFTreeNode {
             cachedString = toString();
         }
         return cachedString;
+    }
+
+    public void invalidateCache() {
+        this.cachedString = null;
+        // 递归清除所有子节点的缓存
+        if (children != null) {
+            for (IFTreeNode child : children) {
+                child.invalidateCache();
+            }
+        }
     }
 }

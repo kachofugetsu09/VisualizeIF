@@ -31,7 +31,12 @@ import java.util.WeakHashMap;
 
 public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider {
 
-    private final Map<PsiMethod, IFTreeNode> ifTreeCache = new WeakHashMap<>();
+    private final Map<PsiMethod, CachedIfTree> ifTreeCache = new WeakHashMap<>();
+
+
+
+
+
     @Override
     protected void collectNavigationMarkers(@NotNull PsiElement element,
                                             @NotNull Collection<? super RelatedItemLineMarkerInfo<?>> result) {
@@ -108,10 +113,20 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
     }
 
     private IFTreeNode getIfTree(PsiMethod method) {
-        return ifTreeCache.computeIfAbsent(method, m -> {
-            AnalyzeIf analyzer = new AnalyzeIf();
-            return analyzer.analyze(m);
-        });
+        Project project = method.getProject();
+        PsiFile containingFile = method.getContainingFile();
+        long currentModificationStamp = containingFile.getModificationStamp();
+
+        CachedIfTree cachedTree = ifTreeCache.get(method);
+        if (cachedTree != null && cachedTree.modificationStamp == currentModificationStamp) {
+            return cachedTree.tree;
+        }
+
+        // 缓存不存在或已过期，重新分析
+        AnalyzeIf analyzer = new AnalyzeIf();
+        IFTreeNode tree = analyzer.analyze(method);
+        ifTreeCache.put(method, new CachedIfTree(tree, currentModificationStamp));
+        return tree;
     }
 
 
