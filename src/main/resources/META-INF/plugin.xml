@@ -2,7 +2,7 @@
     <!--  插件的独立id-->
     <id>com.ideaPlugindemo.rcc.id</id>
     <!--  你的插件名称，也是对应市场的那个-->
-    <name>idea学习演示插件</name>
+    <name>VisualizeIF</name>
     <version>1.0</version>
     <!--  你的邮箱、网址和昵称-->
     <vendor email="861157525@qq.com" url="http://rccblogs.com">花神</vendor>
@@ -20,7 +20,6 @@
     </description>
 
     <change-notes><![CDATA[
-      这是插件的更新记录，支持富文本。
     ]]>
     </change-notes>
 
