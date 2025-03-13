@@ -62,7 +62,6 @@ public class AnalyzeIf {
         return results;
     }
 
-    // 可选：使用进度指示器的异步分析版本
     public void analyzeMultipleMethodsWithProgress(List<PsiMethod> methods, Runnable onComplete) {
         ProgressManager.getInstance().run(new Task.Backgroundable(
                 null, "Analyzing Methods", true) {
@@ -199,25 +198,20 @@ public class AnalyzeIf {
                         "else if (" + elseIfCondition + ")");
                 parentNode.addChild(elseIfNode);
 
-                // Process else-if then branch
                 if (elseIfStatement.getThenBranch() != null) {
                     analyzeBranch(elseIfStatement.getThenBranch(), elseIfNode);
                 }
 
-                // Process else-if's else branch
                 if (elseIfStatement.getElseBranch() != null) {
                     if (elseIfStatement.getElseBranch() instanceof PsiIfStatement) {
-                        // Chain of else-if
                         analyzeIfStatement((PsiIfStatement) elseIfStatement.getElseBranch(), parentNode);
                     } else {
-                        // Regular else for the else-if
                         IFTreeNode finalElseNode = new IFTreeNode(IFTreeNode.NodeType.ELSE, "else");
                         parentNode.addChild(finalElseNode);
                         analyzeBranch(elseIfStatement.getElseBranch(), finalElseNode);
                     }
                 }
             } else {
-                // Regular else
                 IFTreeNode elseNode = new IFTreeNode(IFTreeNode.NodeType.ELSE, "else");
                 parentNode.addChild(elseNode);
                 analyzeBranch(ifStatement.getElseBranch(), elseNode);
@@ -231,94 +225,147 @@ public class AnalyzeIf {
     private void analyzeWhileStatement(PsiWhileStatement whileStatement, IFTreeNode parentNode) {
         // TODO:
         // 1. 提取循环条件
+        String condition = whileStatement.getCondition() != null ?
+                whileStatement.getCondition().getText() : "no condition";
         // 2. 创建WHILE类型节点
+        IFTreeNode whileNode = new IFTreeNode(IFTreeNode.NodeType.WHILE, "while (" + condition + ")");
         // 3. 添加到父节点
+        parentNode.addChild(whileNode);
         // 4. 分析循环体内容
+        analyzeBranch(whileStatement.getBody(), whileNode);
+
     }
 
     /**
      * 分析do-while循环语句
      */
     private void analyzeDoWhileStatement(PsiDoWhileStatement doWhileStatement, IFTreeNode parentNode) {
-        // TODO:
         // 1. 提取循环条件
+        String condition = doWhileStatement.getCondition() != null ?
+                doWhileStatement.getCondition().getText() : "no condition";
+
         // 2. 创建DO_WHILE类型节点
+        IFTreeNode doWhileNode = new IFTreeNode(IFTreeNode.NodeType.DO_WHILE, "do-while (" + condition + ")");
+
         // 3. 添加到父节点
-        // 4. 分析循环体内容（注意do-while先执行语句块再判断条件）
+        parentNode.addChild(doWhileNode);
+
+        // 4. 分析循环体内容
+        if (doWhileStatement.getBody() != null) {
+            analyzeBranch(doWhileStatement.getBody(), doWhileNode);
+        }
     }
 
     /**
      * 分析for循环语句
      */
     private void analyzeForStatement(PsiForStatement forStatement, IFTreeNode parentNode) {
-        // TODO:
         // 1. 提取初始化语句、条件和更新语句
+        StringBuilder forText = new StringBuilder("for (");
+
+        // 初始化部分
+        if (forStatement.getInitialization() != null) {
+            forText.append(forStatement.getInitialization().getText());
+        }
+        forText.append("; ");
+
+        // 条件部分
+        if (forStatement.getCondition() != null) {
+            forText.append(forStatement.getCondition().getText());
+        }
+        forText.append("; ");
+
+        // 更新部分
+        if (forStatement.getUpdate() != null) {
+            forText.append(forStatement.getUpdate().getText());
+        }
+        forText.append(")");
+
         // 2. 创建FOR类型节点
+        IFTreeNode forNode = new IFTreeNode(IFTreeNode.NodeType.FOR, forText.toString());
+
         // 3. 添加到父节点
+        parentNode.addChild(forNode);
+
         // 4. 分析循环体内容
+        if (forStatement.getBody() != null) {
+            analyzeBranch(forStatement.getBody(), forNode);
+        }
     }
 
     /**
      * 分析增强型for循环语句
      */
     private void analyzeForeachStatement(PsiForeachStatement foreachStatement, IFTreeNode parentNode) {
-        // TODO:
         // 1. 提取迭代变量和集合表达式
+        StringBuilder foreachText = new StringBuilder("for (");
+
+        // 迭代变量
+        if (foreachStatement.getIterationParameter() != null) {
+            PsiParameter param = foreachStatement.getIterationParameter();
+            foreachText.append(param.getType().getPresentableText())
+                    .append(" ")
+                    .append(param.getName());
+        }
+
+        foreachText.append(" : ");
+
+        // 集合表达式
+        if (foreachStatement.getIteratedValue() != null) {
+            foreachText.append(foreachStatement.getIteratedValue().getText());
+        }
+
+        foreachText.append(")");
+
         // 2. 创建FOR类型节点并特别标记为foreach
+        IFTreeNode foreachNode = new IFTreeNode(IFTreeNode.NodeType.FOR, foreachText.toString());
+
         // 3. 添加到父节点
+        parentNode.addChild(foreachNode);
+
         // 4. 分析循环体内容
+        if (foreachStatement.getBody() != null) {
+            analyzeBranch(foreachStatement.getBody(), foreachNode);
+        }
     }
 
     /**
      * 分析switch语句
      */
     private void analyzeSwitchStatement(PsiSwitchStatement switchStatement, IFTreeNode parentNode) {
-        // TODO:
-        // 1. 提取switch表达式
-        // 2. 创建SWITCH类型节点
-        // 3. 添加到父节点
-        // 4. 遍历所有case分支和default分支
-        // 5. 针对每个分支创建子节点并分析其代码块
+        //TODO
     }
 
     /**
      * 分析switch表达式（Java 12+）
      */
     private void analyzeSwitchExpression(PsiSwitchExpression switchExpression, IFTreeNode parentNode) {
-        // TODO:
-        // 1. 提取switch表达式
-        // 2. 创建SWITCH类型节点并标记为表达式类型
-        // 3. 添加到父节点
-        // 4. 遍历所有case分支和default分支
-        // 5. 针对每个分支创建子节点并分析其代码块
+        //TODO
     }
 
     /**
      * 分析try-catch-finally语句
      */
     private void analyzeTryStatement(PsiTryStatement tryStatement, IFTreeNode parentNode) {
-        // TODO:
-        // 1. 创建TRY类型节点
-        // 2. 添加到父节点
-        // 3. 分析try块内容
-        // 4. 遍历所有catch块
-        // 5. 为每个catch块创建CATCH类型子节点并分析其内容
-        // 6. 分析finally块（如果存在）
-        // 7. 分析try-with-resources的资源声明（如果存在）
+        //TODO
     }
 
     private void analyzeBranch(PsiStatement branch, IFTreeNode parentNode) {
         if (branch instanceof PsiBlockStatement) {
-            // Block of statements
             PsiCodeBlock codeBlock = ((PsiBlockStatement) branch).getCodeBlock();
             analyzeCodeBlock(codeBlock, parentNode);
         } else if (branch instanceof PsiIfStatement) {
-            // Nested if without block (single line if)
             analyzeIfStatement((PsiIfStatement) branch, parentNode);
         } else if (branch instanceof PsiExpressionStatement) {
-            // Single expression statement - not important for if tree
+        } else if (branch instanceof PsiWhileStatement) {
+            analyzeWhileStatement((PsiWhileStatement) branch, parentNode);
+        } else if (branch instanceof PsiForStatement) {
+            analyzeForStatement((PsiForStatement) branch, parentNode);
+        } else if (branch instanceof PsiForeachStatement) {
+            analyzeForeachStatement((PsiForeachStatement) branch, parentNode);
+        } else if (branch instanceof PsiDoWhileStatement) {
+            analyzeDoWhileStatement((PsiDoWhileStatement) branch, parentNode);
         } else {
-            // Handle other statement types
             analyzeStatement(branch, parentNode);
         }
     }
