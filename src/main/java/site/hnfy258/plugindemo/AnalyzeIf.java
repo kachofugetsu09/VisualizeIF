@@ -120,6 +120,7 @@ public class AnalyzeIf {
         return params.toString();
     }
 
+
     private void analyzeCodeBlock(PsiCodeBlock codeBlock, IFTreeNode parentNode) {
         List<PsiStatement> statements = new ArrayList<>();
         for (PsiStatement statement : codeBlock.getStatements()) {
@@ -307,7 +308,6 @@ public class AnalyzeIf {
         if (forStatement.getInitialization() != null) {
             forText.append(forStatement.getInitialization().getText());
         }
-        forText.append("; ");
 
         // 条件部分
         if (forStatement.getCondition() != null) {
@@ -454,6 +454,7 @@ public class AnalyzeIf {
                 }
             }
         }
+
 
         // Analyze finally block if present - add as sibling to try
         PsiCodeBlock finallyBlock = tryStatement.getFinallyBlock();

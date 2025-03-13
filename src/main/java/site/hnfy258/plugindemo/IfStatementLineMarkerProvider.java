@@ -157,35 +157,46 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
         // 获取IDE编辑器字体
         Font editorFont = EditorColorsManager.getInstance().getGlobalScheme().getFont(EditorFontType.PLAIN);
 
-        // 创建文本区域显示IF树
-        JBTextArea textArea = new JBTextArea(ifTree.toStringCached()); // 使用缓存的toString结果
-        textArea.setEditable(false);
-        textArea.setFont(editorFont);
+        // 创建面板
+        JPanel panel = new JPanel(new BorderLayout());
+
+        // 使用JEditorPane显示HTML内容
+        JEditorPane editorPane = new JEditorPane("text/html", "");
+        editorPane.setEditable(false);
+        editorPane.setFont(editorFont);
+        editorPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
 
         // 获取IDE配色方案
         EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
         Color backgroundColor = scheme.getDefaultBackground();
         Color foregroundColor = scheme.getDefaultForeground();
 
-        textArea.setBackground(backgroundColor);
-        textArea.setForeground(foregroundColor);
-        textArea.setBorder(JBUI.Borders.empty(10));
+        editorPane.setBackground(backgroundColor);
+        editorPane.setForeground(foregroundColor);
+        editorPane.setBorder(JBUI.Borders.empty(10));
 
-        JBScrollPane scrollPane = new JBScrollPane(textArea);
+        // 设置HTML内容，包装为pre标签保持格式
+        String htmlContent = "<html><body style='font-family: monospace;'><pre>" +
+                ifTree.toStringCached() +
+                "</pre></body></html>";
+        editorPane.setText(htmlContent);
+
+        JBScrollPane scrollPane = new JBScrollPane(editorPane);
         scrollPane.setPreferredSize(new Dimension(800, 600));
         scrollPane.setBorder(JBUI.Borders.empty());
 
-        // 创建弹出窗口
-        JBPopup popup = JBPopupFactory.getInstance()
-                .createComponentPopupBuilder(scrollPane, textArea)
-                .setTitle("IF Logic Structure - " + method.getName())
-                .setResizable(true)
-                .setMovable(true)
-                .setRequestFocus(true)
-                .createPopup();
+        panel.add(scrollPane, BorderLayout.CENTER);
 
-        // 显示弹出窗口
-        popup.show(new RelativePoint(e));
+        // 创建对话框窗口而不是弹出窗口
+        JDialog dialog = new JDialog();
+        dialog.setTitle("IF Logic Structure - " + method.getName());
+        dialog.setContentPane(panel);
+        dialog.setSize(800, 600);
+        dialog.setLocationRelativeTo(null); // 居中显示
+
+
+        // 显示对话框
+        dialog.setVisible(true);
     }
 }
 
