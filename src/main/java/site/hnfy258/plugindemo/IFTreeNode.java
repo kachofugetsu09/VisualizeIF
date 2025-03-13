@@ -7,7 +7,7 @@ import java.util.List;
 public class IFTreeNode {
     public enum NodeType {
         IF, ELSE_IF, ELSE, THEN_BRANCH, STATEMENT, METHOD,
-        WHILE, DO_WHILE, FOR, SWITCH, CASE, DEFAULT, TRY, CATCH, FINALLY,SWITCH_EXPR,EXPRESSION, RESOURCE
+        WHILE, DO_WHILE, FOR, SWITCH, CASE, DEFAULT, TRY, CATCH, FINALLY,SWITCH_EXPR,EXPRESSION, TEMP, RESOURCE
     }
 
     private NodeType type;

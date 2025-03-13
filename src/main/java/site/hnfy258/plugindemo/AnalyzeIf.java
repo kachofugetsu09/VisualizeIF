@@ -30,14 +30,21 @@ public class AnalyzeIf {
     // 使用IDEA调度器并行分析多个方法
     public List<IFTreeNode> analyzeMultipleMethods(List<PsiMethod> methods) {
         List<CompletableFuture<IFTreeNode>> futures = new ArrayList<>(methods.size());
+        // 创建固定大小的结果数组，用于保持顺序
+        IFTreeNode[] orderedResults = new IFTreeNode[methods.size()];
 
         // 使用IDE的线程池提交任务
-        for (PsiMethod method : methods) {
+        for (int i = 0; i < methods.size(); i++) {
+            final PsiMethod method = methods.get(i);
+            final int methodIndex = i;
+
             CompletableFuture<IFTreeNode> future = new CompletableFuture<>();
 
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 try {
                     IFTreeNode result = analyze(method);
+                    // 直接将结果放入正确的位置
+                    orderedResults[methodIndex] = result;
                     future.complete(result);
                 } catch (Exception e) {
                     future.completeExceptionally(e);
@@ -47,17 +54,23 @@ public class AnalyzeIf {
             futures.add(future);
         }
 
-        // 收集结果
-        List<IFTreeNode> results = new ArrayList<>(methods.size());
+        // 等待所有任务完成
         for (CompletableFuture<IFTreeNode> future : futures) {
             try {
-                results.add(future.get());
+                future.get();
             } catch (InterruptedException | ExecutionException e) {
                 ApplicationManager.getApplication().invokeLater(() -> {
                     // 在UI线程中处理异常
-                    // 可以考虑显示通知或记录日志
                     e.printStackTrace();
                 });
+            }
+        }
+
+        // 将有序结果转换为List
+        List<IFTreeNode> results = new ArrayList<>(methods.size());
+        for (IFTreeNode node : orderedResults) {
+            if (node != null) {
+                results.add(node);
             }
         }
 
@@ -115,9 +128,18 @@ public class AnalyzeIf {
 
         // 对于复杂代码块，考虑使用IDEA的任务调度
         if (statements.size() > 3) {
+            // 创建一个与语句数量相同的结果列表，保持原始顺序
+            List<IFTreeNode[]> resultNodes = new ArrayList<>(statements.size());
+            for (int i = 0; i < statements.size(); i++) {
+                resultNodes.add(null);
+            }
+
             List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-            for (PsiStatement statement : statements) {
+            for (int i = 0; i < statements.size(); i++) {
+                final PsiStatement statement = statements.get(i);
+                final int statementIndex = i;
+
                 if (statement instanceof PsiIfStatement) {
                     // 仅对复杂的if语句使用并行处理
                     PsiIfStatement ifStatement = (PsiIfStatement) statement;
@@ -125,7 +147,12 @@ public class AnalyzeIf {
 
                     ApplicationManager.getApplication().executeOnPooledThread(() -> {
                         try {
-                            analyzeIfStatement(ifStatement, parentNode);
+                            // 创建一个临时父节点来收集结果
+                            IFTreeNode tempParent = new IFTreeNode(IFTreeNode.NodeType.TEMP, "temp");
+                            analyzeIfStatement(ifStatement, tempParent);
+
+                            // 存储临时节点的子节点(们)，以便按原始顺序添加
+                            resultNodes.set(statementIndex, tempParent.getChildren().toArray(new IFTreeNode[0]));
                             future.complete(null);
                         } catch (Exception e) {
                             future.completeExceptionally(e);
@@ -135,7 +162,10 @@ public class AnalyzeIf {
                     futures.add(future);
                 } else {
                     // 其他语句直接处理
-                    analyzeStatement(statement, parentNode);
+                    // 创建一个临时父节点
+                    IFTreeNode tempParent = new IFTreeNode(IFTreeNode.NodeType.TEMP, "temp");
+                    analyzeStatement(statement, tempParent);
+                    resultNodes.set(statementIndex, tempParent.getChildren().toArray(new IFTreeNode[0]));
                 }
             }
 
@@ -145,6 +175,15 @@ public class AnalyzeIf {
                     future.get();
                 } catch (Exception e) {
                     e.printStackTrace();
+                }
+            }
+
+            // 按照原始顺序将结果添加到父节点
+            for (IFTreeNode[] nodes : resultNodes) {
+                if (nodes != null) {
+                    for (IFTreeNode node : nodes) {
+                        parentNode.addChild(node);
+                    }
                 }
             }
         } else {
