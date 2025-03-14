@@ -1,11 +1,12 @@
 <idea-plugin>
-    <!--  插件的独立id-->
-    <id>com.ideaPlugindemo.rcc.id</id>
-    <!--  你的插件名称，也是对应市场的那个-->
+    <!-- 插件的独立id-->
+    <id>com.ideaPlugindemo.hnfy258.id</id>
+    <!-- 你的插件名称，也是对应市场的那个-->
     <name>VisualizeIF</name>
-    <version>1.0</version>
-    <!--  你的邮箱、网址和昵称-->
-    <vendor email="861157525@qq.com" url="http://rccblogs.com">花神</vendor>
+    <version>1.1</version>
+    <!-- 你的邮箱、网址和昵称-->
+    <vendor email="2494946808@qq.com" url="http://49.232.191.22:8093/#/">花神</vendor>
+
 
     <description>
         A powerful visualization tool for control flow structures in Java code. This plugin enhances code readability by providing an intuitive, color-coded tree view of if-statements, loops, and other control flow constructs.
@@ -20,12 +21,12 @@
     </description>
 
     <change-notes><![CDATA[
-    ]]>
+]]>
     </change-notes>
 
     <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
     <!-- 最低可安装的idea版本-->
-    <idea-version since-build="173.0"/>
+    <idea-version since-build="212.4746.92"/>
 
     <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -42,5 +43,4 @@
     <actions>
         <!-- Add your actions here -->
     </actions>
-
 </idea-plugin>

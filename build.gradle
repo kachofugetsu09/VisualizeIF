@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'site.hnfy258'
-version = '1.0-SNAPSHOT'
+version = '1.1-old'
 
 repositories {
     mavenCentral()
@@ -32,8 +32,8 @@ compileKotlin {
 }
 
 patchPluginXml {
-    sinceBuild = '241'
-    untilBuild = '243.*'
+    sinceBuild = '212'
+    untilBuild = '242.*'
 }
 
 signPlugin {
