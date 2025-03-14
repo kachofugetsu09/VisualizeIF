@@ -225,9 +225,9 @@ public class AnalyzeIf {
             analyzeTryStatement((PsiTryStatement) statement, parentNode);
         } else if (statement instanceof PsiBlockStatement) {
             analyzeCodeBlock(((PsiBlockStatement) statement).getCodeBlock(), parentNode);
-        } else if (statement instanceof PsiExpressionStatement) {
         }
     }
+
 
     private void analyzeIfStatement(PsiIfStatement ifStatement, IFTreeNode parentNode) {
         ReadAction.run(()->
@@ -395,49 +395,71 @@ public class AnalyzeIf {
 
     }
 
+
     /**
      * 分析switch语句
      */
     private void analyzeSwitchStatement(PsiSwitchStatement switchStatement, IFTreeNode parentNode) {
-        ReadAction.run(()-> {
-            String switchText = "switch (" + switchStatement.getExpression().getText() + ")";
+        ReadAction.run(() -> {
+            // 获取switch语句的选择器表达式
+            String expressionText = switchStatement.getExpression() != null ?
+                    switchStatement.getExpression().getText() : "no expression";
 
+            String switchText = "switch (" + expressionText + ")";
             IFTreeNode switchNode = new IFTreeNode(IFTreeNode.NodeType.SWITCH, switchText);
-
             parentNode.addChild(switchNode);
 
             PsiCodeBlock body = switchStatement.getBody();
             if (body != null) {
-                PsiStatement[] statements = body.getStatements();
+                for (PsiSwitchLabelStatement label : PsiTreeUtil.findChildrenOfType(body, PsiSwitchLabelStatement.class)) {
+                    String caseText;
+                    if (label.isDefaultCase()) {
+                        caseText = "default:";
+                    } else {
+                        caseText = label.getText();
+                    }
 
-                IFTreeNode currentCaseNode = null;
+                    IFTreeNode caseNode = new IFTreeNode(IFTreeNode.NodeType.CASE, caseText);
+                    switchNode.addChild(caseNode);
 
-                for (PsiStatement statement : statements) {
-                    if (statement instanceof PsiSwitchLabelStatement) {
-                        PsiSwitchLabelStatement labelStatement = (PsiSwitchLabelStatement) statement;
-
-                        String caseText;
-                        if (labelStatement.isDefaultCase()) {
-                            caseText = "default:";
-                        } else {
-                            caseText = labelStatement.getText();
+                    PsiElement current = label.getNextSibling();
+                    while (current != null && !(current instanceof PsiSwitchLabelStatement)) {
+                        if (current instanceof PsiStatement) {
+                            analyzeStatement((PsiStatement) current, caseNode);
                         }
+                        current = current.getNextSibling();
+                    }
+                }
 
-                        currentCaseNode = new IFTreeNode(IFTreeNode.NodeType.CASE, caseText);
-                        switchNode.addChild(currentCaseNode);
-                    } else if (currentCaseNode != null) {
-                        analyzeStatement(statement, currentCaseNode);
+                // 处理增强型switch语句(使用->的语法)
+                for (PsiSwitchLabeledRuleStatement rule : PsiTreeUtil.findChildrenOfType(body, PsiSwitchLabeledRuleStatement.class)) {
+                    String caseText;
+                    if (rule.isDefaultCase()) {
+                        caseText = "default";
+                    } else {
+                        PsiCaseLabelElementList labelList = rule.getCaseLabelElementList();
+                        if (labelList != null) {
+                            caseText = "case " + labelList.getText();
+                        } else {
+                            caseText = rule.getText();
+                        }
+                    }
+
+                    IFTreeNode caseNode = new IFTreeNode(IFTreeNode.NodeType.CASE, caseText);
+                    switchNode.addChild(caseNode);
+
+                    // 分析case分支的主体
+                    PsiStatement ruleBody = rule.getBody();
+                    if (ruleBody != null) {
+                        analyzeStatement(ruleBody, caseNode);
                     }
                 }
             }
         });
-
     }
 
 
-    /**
-     * 分析switch表达式（Java 12+）
-     */
+
 
 
     /**
