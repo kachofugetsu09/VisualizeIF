@@ -6,6 +6,7 @@ import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider;
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.editor.colors.EditorFontType;
@@ -115,18 +116,22 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
     private IFTreeNode getIfTree(PsiMethod method) {
         Project project = method.getProject();
         PsiFile containingFile = method.getContainingFile();
-        long currentModificationStamp = containingFile.getModificationStamp();
 
-        CachedIfTree cachedTree = ifTreeCache.get(method);
-        if (cachedTree != null && cachedTree.modificationStamp == currentModificationStamp) {
-            return cachedTree.tree;
-        }
+        // 使用 ReadAction 包装访问 PSI 的代码
+        return ReadAction.compute(() -> {
+            long currentModificationStamp = containingFile.getModificationStamp();
 
-        // 缓存不存在或已过期，重新分析
-        AnalyzeIf analyzer = new AnalyzeIf();
-        IFTreeNode tree = analyzer.analyze(method);
-        ifTreeCache.put(method, new CachedIfTree(tree, currentModificationStamp));
-        return tree;
+            CachedIfTree cachedTree = ifTreeCache.get(method);
+            if (cachedTree != null && cachedTree.modificationStamp == currentModificationStamp) {
+                return cachedTree.tree;
+            }
+
+            // 缓存不存在或已过期，重新分析
+            AnalyzeIf analyzer = new AnalyzeIf();
+            IFTreeNode tree = analyzer.analyze(method);
+            ifTreeCache.put(method, new CachedIfTree(tree, currentModificationStamp));
+            return tree;
+        });
     }
 
 
@@ -142,6 +147,7 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
 
         // 后台线程执行分析
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            // 使用 ReadAction 包装
             IFTreeNode ifTree = getIfTree(method);
 
             // 切回UI线程显示结果
@@ -170,7 +176,7 @@ public class IfStatementLineMarkerProvider extends RelatedItemLineMarkerProvider
         Color backgroundColor = scheme.getDefaultBackground();
         Color foregroundColor = scheme.getDefaultForeground();
 
-        editorPane.setBackground(backgroundColor);
+        editorPane.setBackground    (backgroundColor);
         editorPane.setForeground(foregroundColor);
         editorPane.setBorder(JBUI.Borders.empty(10));
 
